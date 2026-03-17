@@ -1,0 +1,255 @@
+/*
+Template -https://www.w3schools.com/css/tryit.asp?filename=trycss_template1_flexbox
+css link -> https://www.w3schools.com/css/default.asp
+*/
+
+
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f4f7f6;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+
+.container {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 900px;
+}
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.header-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.btn-history-toggle {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.btn-logout {
+    background: #b20000;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.input-section {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+input,
+select,
+button {
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    outline: none;
+}
+
+#btnCheckIn {
+    background: #2563eb;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.grid-parking {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #fff;
+    border-radius: 10px;
+    border-left: 5px solid #22c55e;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.info {
+    display: flex;
+    flex-direction: column;
+}
+
+.btn-out {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* History */
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-clear-all {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.history-table th,
+.history-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+    font-size: 14px;
+}
+
+.cost-tag {
+    color: #059669;
+    font-weight: bold;
+}
+
+.btn-delete-item {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    transition: transform 0.2s;
+}
+
+.btn-delete-item:hover {
+    transform: scale(1.2);
+}
+
+/* Harga di Struk */
+.harga {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.harga-content {
+    background: white;
+    margin: 10% auto;
+    padding: 25px;
+    border-radius: 15px;
+    width: 300px;
+    text-align: center;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.receipt-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.btn-close {
+    width: 100%;
+    background: #1e293b;
+    color: white;
+    padding: 10px;
+    margin-top: 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* Login Page */
+.login-container {
+  background-color: #ffffff;
+  padding: 40px;
+  border-radius: 16px; 
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); 
+  width: 100%;
+  max-width: 350px; 
+  text-align: center; 
+}
+.login-container h2 {
+  margin-top: 0;
+  margin-bottom: 25px;
+  color: #000;
+}
+.login-container p {
+  margin-top: 20px;
+  font-size: 14px;
+}
+.login-container .form-group {
+  margin-bottom: 15px;
+  text-align: left; 
+}
+
+.login-container .form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.login-container .form-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-sizing: border-box; 
+  outline: none;
+}
+
+.login-container .form-group input:focus {
+  border-color: #2563eb; 
+}
+body.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  background-color: #f8f9fa; 
+}
+
+.btn-login{
+    background: #2563eb;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
