@@ -1,4 +1,4 @@
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { app } from './firebase-config.js';
 
 const auth = getAuth(app);
@@ -12,18 +12,17 @@ signupForm.addEventListener("submit", (event) => {
     const password = document.getElementById("password").value;
 
     createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
+        .then(async (userCredential) => {
             const user = userCredential.user;
             
-            return updateProfile(user, {
-                displayName: name
-            }).then(() => {
-                alert("Pendaftaran Berhasil! Selamat datang, " + name);
-                window.location.href = "index.html"; 
-            });
+            await updateProfile(user, { displayName: name });            
+            await sendEmailVerification(user);
+            
+            alert("Pendaftaran Berhasil! Link verifikasi telah dikirim ke " + email + ".\nSilakan check email Anda.");
+            
+            window.location.href = "login.html"; 
         })
         .catch((error) => {
-            const errorMessage = error.message;
-            alert("Gagal mendaftar: " + errorMessage);
+            alert("Gagal mendaftar: " + error.message);
         });
 });
