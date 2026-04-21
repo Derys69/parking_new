@@ -1,233 +1,140 @@
 import { db } from './firebase-config.js';
-import { 
-    ref, push, set, onValue, update, remove, get, query, orderByChild, equalTo 
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { setupAuth, logoutUser } from './services/auth-service.js';
+import { processCheckIn, processCheckOut, removeHistory } from './services/transaction-service.js';
+import { addSlot, updateSlot, deleteSlot } from './services/slots.js';
+import { addVehicle, getVehicles, updateVehicle, deleteVehicle } from './services/kendaraan.js';
+import { renderActiveTransactions, renderSlotUI, renderHistoryTable, showReceipt, toggleHistoryUI, renderVehicleUI } from './services/ui-service.js';
 
-const parkingGrid = document.getElementById('parkingGrid');
-const historyBody = document.getElementById('historyBody');
-const btnCheckIn = document.getElementById('btnCheckIn');
-const historySection = document.getElementById('historySection');
-const inputSection = document.getElementById('inputSection'); 
-
+setupAuth();
 
 const transactionsRef = ref(db, 'transactions');
-
-// Query untuk data aktif
-const qActive = query(transactionsRef, orderByChild('status'), equalTo('active'));
-
-const auth = getAuth();
-
-// Login Route Protection
-let isLoggingOut = false; 
-
-onAuthStateChanged(auth, (user) => {
-    if (!user) {
-        if (!isLoggingOut) {
-            alert("Anda harus login terlebih dahulu!");
-        }
-        window.location.href = "login.html";
-    } else {
-        console.log("User terautentikasi: ", user.displayName || user.email);
-    }
-});
-
-onValue(qActive, (snapshot) => {
-    parkingGrid.innerHTML = '';
-    const isHistoryOpen = historySection.style.display === 'block';
-    
-    let slotCounts = { A1: 0, A2: 0, B1: 0, B2: 0 };
-    
+let globalSlotCounts = {};
+onValue(transactionsRef, (snapshot) => {
     let activeData = [];
-    if (snapshot.exists()) {
-        snapshot.forEach((childSnapshot) => {
-            activeData.push({ id: childSnapshot.key, ...childSnapshot.val() });
-        });
-        activeData.sort((a, b) => b.checkInTime - a.checkInTime);
-    }
-
-    activeData.forEach((data) => {
-        // Hitung slot
-        if (slotCounts[data.slot] !== undefined) {
-            slotCounts[data.slot]++;
-        }
-
-        const div = document.createElement('div');
-        div.className = "transaction-item";
-        
-        const timeString = data.checkInTime ? new Date(data.checkInTime).toLocaleTimeString('id-ID') : '...';
-
-        div.innerHTML = `
-            <div class="info">
-                <strong>${data.plate}</strong>
-                <span>Slot: ${data.slot} | Paket: ${data.type.toUpperCase()}</span>
-                <small>Masuk: ${timeString}</small>
-            </div>
-            <button class="btn-out" onclick="handleCheckOut('${data.id}')">Check Out</button>
-        `;
-        
-        if (!isHistoryOpen) {
-            parkingGrid.style.display = 'flex';
-            parkingGrid.appendChild(div);
-        }
-    });
-
-    // Update teks Dropdown
-    const slotSelect = document.getElementById('slotSelect');
-    Array.from(slotSelect.options).forEach(option => {
-        const area = option.value; 
-        const count = slotCounts[area] || 0; 
-        
-        if (count >= 10) {
-            option.innerText = `Area ${area} (PENUH)`;
-            option.disabled = true; 
-        } else {
-            option.innerText = `Area ${area} (${count}/10)`;
-            option.disabled = false;
-        }
-    });
-});
-
-//History
-const qHistory = query(transactionsRef, orderByChild('status'), equalTo('completed'));
-
-onValue(qHistory, (snapshot) => {
-    historyBody.innerHTML = '';
-    
     let historyData = [];
+    globalSlotCounts = {};
+
     if (snapshot.exists()) {
-        snapshot.forEach((childSnapshot) => {
-            historyData.push({ id: childSnapshot.key, ...childSnapshot.val() });
+        snapshot.forEach((child) => {
+            const data = { id: child.key, ...child.val() };
+
+            if (data.status === 'active') {
+                activeData.push(data);
+                globalSlotCounts[data.slot] = (globalSlotCounts[data.slot] || 0) + 1;
+            } else if (data.status === 'completed') {
+                historyData.push(data);
+            }
         });
-        historyData.sort((a, b) => b.checkOutTime - a.checkOutTime);
+
+        activeData.sort((a, b) => b.checkInTime - a.checkInTime);
+        historyData.sort((a, b) => (b.checkOutTime || 0) - (a.checkOutTime || 0));
     }
 
-    historyData.forEach((data) => {
-        const checkInStr = data.checkInTime ? new Date(data.checkInTime).toLocaleTimeString('id-ID') : '...';
-        const checkOutStr = data.checkOutTime ? new Date(data.checkOutTime).toLocaleTimeString('id-ID') : '...';
+    const isHistoryOpen = document.getElementById('historySection').style.display === 'block';
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><b>${data.plate}</b></td>
-            <td>${data.slot}</td>
-            <td>${checkInStr}</td>
-            <td>${checkOutStr}</td>
-            <td class="cost-tag">Rp ${data.totalCost?.toLocaleString('id-ID')}</td>
-            <td><button class="btn-delete-item" onclick="deleteHistoryItem('${data.id}')">X</button></td>
-        `;
-        historyBody.appendChild(tr);
+    renderActiveTransactions(activeData, isHistoryOpen);
+    renderHistoryTable(historyData);
+
+    get(ref(db, 'slots')).then(snap => {
+        renderSlotUI(snap.val(), globalSlotCounts);
     });
 });
 
-//Check-in
-btnCheckIn.onclick = async () => {
+onValue(ref(db, 'slots'), (snapshot) => {
+    renderSlotUI(snapshot.val(), globalSlotCounts);
+});
+
+getVehicles((vehicles) => {
+    renderVehicleUI(vehicles);
+});
+document.getElementById('btnCheckIn').onclick = () => {
     const plate = document.getElementById('plateNumber').value.toUpperCase();
     const slotId = document.getElementById('slotSelect').value;
     const packageType = document.getElementById('packageSelect').value;
+    const vehicleType = document.getElementById('vehicleSelect') ? document.getElementById('vehicleSelect').value : 'Mobil';
 
     if(!plate) return alert("Isi plat nomor!");
 
-    try {
-        const snapSlot = await get(qActive);
-        let currentCount = 0;
-        if (snapSlot.exists()) {
-            snapSlot.forEach(child => {
-                if(child.val().slot === slotId) currentCount++;
-            });
-        }
-        
-        if (currentCount >= 10) { 
-            return alert(`Maaf, Area ${slotId} sudah penuh (10/10)! Silakan pilih area lain.`);
-        }
-
-        const newTransactionRef = push(transactionsRef);
-        await set(newTransactionRef, {
-            plate, 
-            slot: slotId, 
-            type: packageType, 
-            status: "active", 
-            checkInTime: Date.now()
-        });
-        
-        document.getElementById('plateNumber').value = '';
-    } catch (e) {
-        console.error("Error: ", e);
-    }
+    processCheckIn(plate, slotId, packageType, vehicleType, globalSlotCounts[slotId] || 0);
 };
 
-//Check-out & Cetak Struk
-window.handleCheckOut = async (id) => {
+window.triggerCheckOut = (id) => {
     if(!confirm("Proses Keluar & Cetak Struk?")) return;
-    
-    const docRef = ref(db, `transactions/${id}`);
-    const snap = await get(docRef);
-    if (!snap.exists()) return;
-
-    const data = snap.val();
-
-    const diffHrs = Math.ceil((Date.now() - data.checkInTime) / (1000 * 60 * 60));
-    let total = data.type === 'harian' ? diffHrs * 5000 : (data.type === 'mingguan' ? 150000 : 500000);
-
-    document.getElementById('receiptBody').innerHTML = `
-        <div class="receipt-row"><span>Plat:</span> <b>${data.plate}</b></div>
-        <div class="receipt-row"><span>Slot:</span> <b>${data.slot}</b></div>
-        <div class="receipt-row"><span>Durasi:</span> <b>${diffHrs} Jam</b></div>
-        <div class="receipt-row" style="font-size:18px; margin-top:10px;"><span>TOTAL:</span> <b>Rp ${total.toLocaleString('id-ID')}</b></div>
-    `;
-    document.getElementById('receiptHarga').style.display = 'block';
-    
-    await update(docRef, { 
-        status: "completed", 
-        checkOutTime: Date.now(), 
-        totalCost: total 
-    });
+    processCheckOut(id, showReceipt);
 };
 
-window.deleteHistoryItem = async (id) => {
-    if (confirm("Hapus riwayat transaksi ini secara permanen?")) {
-        await remove(ref(db, `transactions/${id}`));
-    }
+window.triggerDeleteHistory = (id) => {
+    if (confirm("Hapus riwayat permanen?")) removeHistory(id);
 };
 
 document.getElementById('btnClearAll').onclick = async () => {
-    if (confirm("Apakah Anda yakin ingin menghapus SEMUA riwayat transaksi?")) {
-        const snap = await get(qHistory);
+    if (confirm("Hapus SEMUA riwayat transaksi?")) {
+        const snap = await get(transactionsRef);
         if (snap.exists()) {
             const updates = {};
             snap.forEach(child => {
-                updates[child.key] = null; 
+                if (child.val().status === 'completed') {
+                    updates[child.key] = null;
+                }
             });
             await update(transactionsRef, updates);
-            alert("Semua riwayat telah dihapus.");
+            alert("Semua riwayat dihapus.");
         }
     }
 };
-document.getElementById('btnToggleHistory').onclick = () => {
-    const isHidden = historySection.style.display === 'none';
-    
-    if (isHidden) {
-        historySection.style.display = 'block';
-        parkingGrid.style.display = 'none'; 
-        inputSection.style.display = 'none'; 
-        document.getElementById('btnToggleHistory').innerText = 'Tutup Riwayat';
-    } else {
-        historySection.style.display = 'none';
-        parkingGrid.style.display = 'flex'; 
-        inputSection.style.display = 'grid';
-        document.getElementById('btnToggleHistory').innerText = 'Lihat Riwayat';
+
+document.getElementById('btnToggleHistory').onclick = toggleHistoryUI;
+window.closeHarga = () => document.getElementById('receiptHarga').style.display = 'none';
+
+document.getElementById('btnLogout').onclick = () => {
+    if (confirm("Apakah Anda yakin ingin keluar?")) logoutUser();
+};
+
+const btnSaveSlot = document.getElementById('btnSaveSlot');
+if(btnSaveSlot) {
+    btnSaveSlot.onclick = () => {
+        const name = document.getElementById('newSlotName').value;
+        const cap = document.getElementById('newSlotCapacity').value;
+        if(name && cap) {
+            addSlot(name, cap);
+            document.getElementById('newSlotName').value = '';
+            document.getElementById('newSlotCapacity').value = '';
+        }
+    };
+}
+
+window.triggerEditSlot = (id, oldName, oldCap) => {
+    const newName = prompt("Nama Area Baru:", oldName);
+    const newCap = prompt("Kapasitas Baru:", oldCap);
+    if (newName && newCap) updateSlot(id, { name: newName, capacity: parseInt(newCap) });
+};
+
+window.triggerRemoveSlot = (id) => confirm("Hapus area ini?") && deleteSlot(id);
+
+const btnSaveVeh = document.getElementById('btnSaveVeh');
+if (btnSaveVeh) {
+    btnSaveVeh.onclick = () => {
+        const plate = document.getElementById('newVehPlate').value.toUpperCase();
+        const type = document.getElementById('newVehType').value;
+        if (plate) {
+            addVehicle(plate, "-", type);
+            document.getElementById('newVehPlate').value = '';
+        } else {
+            alert("Plat nomor tidak boleh kosong!");
+        }
+    };
+}
+
+window.triggerEditVehicle = (id, oldType) => {
+    const newType = prompt(`Ubah tipe kendaraan (Ketik: Mobil atau Motor):`, oldType);
+    if (newType === 'Mobil' || newType === 'Motor') {
+        updateVehicle(id, { type: newType });
+    } else if (newType) {
+        alert("Tipe tidak valid! Harus 'Mobil' atau 'Motor'.");
     }
 };
 
-window.closeHarga = () => document.getElementById('receiptHarga').style.display = 'none';
-
-// Logout
-window.handleLogout = () => {
-    isLoggingOut = true; 
-    
-    signOut(auth).then(() => {
-        alert("Anda telah berhasil keluar.");
-    }).catch((error) => {
-        isLoggingOut = false; 
-        alert("Gagal logout: " + error.message);
-    });
+window.triggerRemoveVehicle = (id) => {
+    if (confirm("Hapus kendaraan member ini?")) deleteVehicle(id);
 };

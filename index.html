@@ -12,28 +12,59 @@
             <h2>Parking Dashboard</h2>
             <div class="header-buttons">
                 <button id="btnToggleHistory" class="btn-history-toggle">Lihat Riwayat</button>          
-                <button id="btnLogout" class="btn-logout" onclick="handleLogout()">Logout</button>
+                <button id="btnLogout" class="btn-logout">Logout</button>
             </div>
         </div>
 
-        <div id="inputSection" class="input-section">
-            <input type="text" id="plateNumber" placeholder="Plat Nomor Mobil">
-            <select id="slotSelect">
-                <!-- TAMBAH AREA BARU DI SINI -->
-                <option value="A1">Area A1 (0/10)</option>
-                <option value="A2">Area A2 (0/10)</option>
-                <option value="B1">Area B1 (0/10)</option>
-                <option value="B2">Area B2 (0/10)</option>
-            </select>
-            <select id="packageSelect">
-                <option value="harian">Harian</option>
-                <option value="mingguan">Mingguan</option>
-                <option value="bulanan">Bulanan</option>
-            </select>
-            <button id="btnCheckIn">Check-In</button>
+        <div id="adminOnly" style="display: none;">
+            <div id="inputSection" class="input-section">
+                <input type="text" id="plateNumber" placeholder="Plat Nomor Kendaraan">
+                
+                <select id="vehicleSelect">
+                    <option value="Mobil">Mobil</option>
+                    <option value="Motor">Motor</option>
+                </select>
+
+                <select id="slotSelect">
+                    </select>
+                
+                <select id="packageSelect">
+                    <option value="harian">Harian</option>
+                    <option value="mingguan">Mingguan</option>
+                    <option value="bulanan">Bulanan</option>
+                </select>
+                <button id="btnCheckIn">Check-In</button>
+            </div>
+
+            <div class="admin-slot-section" style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 10px; background: #f9f9f9;">
+                <h3>Pengaturan Area Parkir</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="newSlotName" placeholder="Nama Area (Contoh: C1)" style="flex: 2; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                    <input type="number" id="newSlotCapacity" placeholder="Kapasitas" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                    <button id="btnSaveSlot" style="background: #22c55e; color: white; border: none; border-radius: 6px; cursor: pointer; padding: 10px 15px; font-weight: bold;">Tambah Area</button>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #eee;">
+                            <th style="text-align: left; padding: 8px;">Nama Area</th>
+                            <th style="text-align: left; padding: 8px;">Kapasitas</th>
+                            <th style="text-align: center; padding: 8px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="slotTableBody">
+                        </tbody>
+                </table>
+            </div>
         </div>
 
-        <div class="grid-parking" id="parkingGrid"></div>
+        <div id="memberOnly" style="display: none;">
+            <div style="background: #e0f2fe; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <h3>Selamat Datang!/h3>
+                <p>Daftar kendaraan yang sedang parkir akan ditampilkan di bawah.</p>
+            </div>
+        </div>
+
+        <div class="grid-parking" id="parkingGrid" style="margin-top: 20px;"></div>
 
         <div id="historySection" class="history-section" style="display: none;">
             <hr>

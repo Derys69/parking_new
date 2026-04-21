@@ -1,5 +1,5 @@
 import { applyActionCode } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { auth } from '../js/firebase-config.js'; 
+import { auth } from './firebase-config.js'; 
 
 const urlParams = new URLSearchParams(window.location.search);
 const oobCode = urlParams.get('oobCode');
